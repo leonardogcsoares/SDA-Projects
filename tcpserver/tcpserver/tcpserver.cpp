@@ -2,6 +2,7 @@
 #include <WinSock2.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <process.h>
 #include <ws2tcpip.h>
 
@@ -9,13 +10,28 @@
 
 // Function declarations
 void dealWithConnection(SOCKET * connection);
-void incrementMsgSequence();
 
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "4660"
 
-int msgSequence = 0;
+#define TAMMSGSETUP 44  // 5*8 caracteres + 4 separadores
+#define TAMMSGACK   17  // 2*8 caracteres + 1 separador
+#define TAMMSGREQ   17  // 2*8 caracteres + 1 separador
+#define TAMMSGDADOS 44  // 5*8 caracteres + 4 separadores
+#define TAMMSGSEGMENTSIZE 8 // 8 caracteres
+
+#define MSG_SETUP_PREFIX	"00000001"
+#define MSG_DATA_PREFIX		"00000005"
+#define MSG_ACK_PREFIX		"00000002"
+
+#define MSG_SEQUENCE_SETUP 0
+#define MSG_SEQUENCE_DATA 1
+
+int msgSequenceSetup	= 1;
+int msgSequenceData		= 1;
+
+
 
 void main(void) {
 	int				result;
@@ -24,7 +40,7 @@ void main(void) {
 	SOCKET			listeningSocket = INVALID_SOCKET;
 	SOCKET			newConnection	= INVALID_SOCKET;
 	SOCKADDR_IN		serverAddr;
-	SOCKADDR_IN		clientAddr;
+	//SOCKADDR_IN		clientAddr;
 	int				port			= 4660;
 
 	struct addrinfo *addrResult = NULL;
@@ -110,6 +126,21 @@ void dealWithConnection(SOCKET * connection) {
     char recvBuf[DEFAULT_BUFLEN];
     int recvBufLen = DEFAULT_BUFLEN;
 
+	char cimentType[TAMMSGSEGMENTSIZE], 
+		cimentToProduce[TAMMSGSEGMENTSIZE], 
+		timeBeginProduction[TAMMSGSEGMENTSIZE],
+		numberSequence[TAMMSGSEGMENTSIZE];
+
+	int msgSequence, cimentTypeValue;
+	float cimentToProduceValue;
+	
+	// Buffer for intermediating data
+	char buf[DEFAULT_BUFLEN];
+
+	// Predefined message responses for sending ACK or Data to client
+	char msgAckResponse[TAMMSGACK+1] = "00000002|NNNNNNNN";
+	char msgDataResponse[TAMMSGDADOS+1] = "00000005|NNNNNNNN|00000123|00001104|23:12:15";
+
 	do {
 		// Receives messages from clientConnections and returns error (-1) or bytes received
 		result = recv(*connection, recvBuf, recvBufLen, 0);
@@ -120,8 +151,58 @@ void dealWithConnection(SOCKET * connection) {
 			printf("Message received: %s\n", recvBuf);
 			printf("Size of message: %d\n", sizeof(recvBuf) / sizeof(recvBuf[0]));
 
-			// Verify what type of message
-			// AckMessage() - 17 bytes
+			if(strncmp(&recvBuf[0], MSG_SETUP_PREFIX, 8) == 0) {
+				// Setup message
+				// Ler numero sequencial da mensagem
+				memcpy_s(&numberSequence[0], 8, &recvBuf[9], 8) ;
+				sscanf_s(numberSequence, "%d", &msgSequence);
+				// Ler Tipo de Cimento
+				memcpy_s(&cimentType[0], 8, &recvBuf[18], 8);
+				sscanf_s(cimentType, "%d", &cimentTypeValue);
+				// Ler Tonelagem a produzir
+				memcpy_s(&cimentToProduce[0], 8, &recvBuf[27], 8);
+				sscanf_s(cimentToProduce, "%f", &cimentToProduceValue);
+				// Ler hora prevista de inicio
+				memcpy_s(&timeBeginProduction[0], 8, &recvBuf[36], 8);
+
+
+				printf("Number sequence: %d\n", msgSequence);
+				printf("Type ciment: %d\n", cimentTypeValue);
+				printf("Ciment to produce: %f\n", cimentToProduceValue);
+				printf("Time to Begin Production: %8s\n", timeBeginProduction);
+
+				// Chamar escrita sincrona, OPCClient
+
+				// Montar ACK
+				sprintf_s(buf, 10, "%08d", ++msgSequenceSetup);
+				memcpy_s(&msgAckResponse[9], 8, buf, 8);
+				// Mandar ACK para o client
+				result = send(*connection, msgAckResponse, TAMMSGACK, 0);
+				if (result == TAMMSGREQ)
+					printf ("Msg de ACK enviada ao client TCP:\n%s\n\n", msgAckResponse);
+			    else {
+					if (result == 0) 
+						// Connection destroyed
+					    printf ("SEND retornou 0 bytes ... Falha!\n");
+				    else if (result == SOCKET_ERROR){
+						result=WSAGetLastError();
+						printf("Falha no SEND: codigo de erro = %d\n", result);
+					}
+					break;
+				}
+			}
+			else if(strncmp(&recvBuf[0], MSG_DATA_PREFIX, TAMMSGSEGMENTSIZE) == 0) {
+				// Data message
+				// Ler numero sequencial da mensagem
+				memcpy_s(&numberSequence[0], 8, &recvBuf[9], 8) ;
+				sscanf_s(numberSequence, "%d", &msgSequence);
+
+				// Obter ultimos valores de dados de producao, OPCClient
+				// Montar msgDadosProducao
+				
+				// Mandar mensagem dados para o client
+
+			}
 
 
 		}
@@ -140,8 +221,4 @@ void dealWithConnection(SOCKET * connection) {
 	}
 	while (result > 0);
 
-}
-
-void incrementMsgSequence() {
-	msgSequence++;
 }
