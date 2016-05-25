@@ -1,7 +1,7 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimpleOPCClient", "SimpleOPCClient.vcproj", "{6C614B07-E2D4-407A-BB8C-CA292AB68C92}"
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimpleOPCClient", "SimpleOPCClient.vcxproj", "{6C614B07-E2D4-407A-BB8C-CA292AB68C92}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

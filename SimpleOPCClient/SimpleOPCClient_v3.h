@@ -28,9 +28,11 @@
 IOPCServer *InstantiateServer(wchar_t ServerName[]);
 void AddTheGroup(IOPCServer* pIOPCServer, IOPCItemMgt* &pIOPCItemMgt, 
 				 OPCHANDLE& hServerGroup);
-void AddTheItem(IOPCItemMgt* pIOPCItemMgt, OPCHANDLE& hServerItem);
-void ReadItem(IUnknown* pGroupIUnknown, OPCHANDLE hServerItem, VARIANT& varValue);
+void AddTheItem(IOPCItemMgt* pIOPCItemMgt, OPCHANDLE& hServerItem, LPWSTR ITEM, int VT, int hClient);
+void WriteItem(IUnknown* pGroupIUnknown, OPCHANDLE hServerItem, VARIANT& varValue);
 void RemoveItem(IOPCItemMgt* pIOPCItemMgt, OPCHANDLE hServerItem);
 void RemoveGroup(IOPCServer* pIOPCServer, OPCHANDLE hServerGroup);
+void RetrieveValues(char* production, char *oee, char *time);
+
 
 #endif // SIMPLE_OPC_CLIENT_H not defined

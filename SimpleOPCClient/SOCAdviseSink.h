@@ -5,10 +5,17 @@
 // 
 
 #include <ObjIdl.h>
+#include <string>
 
 // Class definition
 #ifndef _SOCADVISESINK_H
 #define _SOCADVISESINK_H
+
+#define PRODUCTION 0
+#define OEE 1
+#define TIME_FINISH 2
+
+
 class SOCAdviseSink : public IAdviseSink
 	{
 	public:
@@ -25,6 +32,11 @@ class SOCAdviseSink : public IAdviseSink
 		void STDMETHODCALLTYPE OnRename (LPMONIKER pmk) {/*Not implemented*/};
 		void STDMETHODCALLTYPE OnSave () {/*Not implemented*/};
 		void STDMETHODCALLTYPE OnClose () {/*Not implemented*/};
+
+		void SetProduction(char production[100]);
+		void SetOEE(char oee[100]);
+		void SetTimeToFinish(char time[100]);
+		void RetrieveValues(char *production, char *oee, char *time);
 
 	private: 
 

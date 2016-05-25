@@ -1,4 +1,4 @@
-﻿Build started 5/18/2016 3:59:18 PM.
+﻿Build started 5/24/2016 7:43:25 PM.
      1>Project "C:\Users\leonardogcsoares\Desktop\Trabalho SDA\Trabalho\tcpclient\tcpclient\tcpclient.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
          Creating "Debug\tcpclient.unsuccessfulbuild" because "AlwaysCreate" was specified.
@@ -23,4 +23,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:00.98
+Time Elapsed 00:00:01.99

@@ -247,7 +247,7 @@ void main(int argc, char **argv)
 		       break;
 		   }
 	   }
-
+	   
 	   // Atualiza o contador de pulsos. Quando "cont" alcanca o valor de 19, seu valor é
 	   // zerado para que a proxima ativacao do temporizador (que ocorrera' no pulso de n. 20)
 	   // force novo envio de mensagem.

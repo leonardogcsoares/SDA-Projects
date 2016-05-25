@@ -4,18 +4,24 @@
 // Note that only the IadviseSink::OnDataChangeMethod() is
 // required in the OPC DA specs.
 //
-// This code is largely based on the KEPWARE´s sample client code.
+// This code is largely based on the KEPWAREï¿½s sample client code.
 //
 // Luiz T. S. Mendes - DELT/UFMG - 06 Sept 2011
 //
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
+#include <string>
 #include "opcda.h"
 #include "SOCAdviseSink.h"
 #include "SOCWrapperFunctions.h"
 
 extern UINT OPC_DATA_TIME;
+
+char mProduction[100];
+char mOee[100];
+char mTime[100];
 
 // Constructor: initializes the reference count to 0.
 SOCAdviseSink::SOCAdviseSink () : m_cRef (0)
@@ -36,7 +42,7 @@ HRESULT STDMETHODCALLTYPE SOCAdviseSink::QueryInterface (REFIID riid, LPVOID *pp
 		return (E_NOINTERFACE); //unsupported interface
 
 	// Success
-	AddRef ();                  
+	AddRef ();
 	return (S_OK);
 }
 
@@ -61,7 +67,7 @@ ULONG STDMETHODCALLTYPE SOCAdviseSink::Release (void)
 // code sample, only the "Data with Time Stamp" is implemented, so the
 // call to the IDataObject interface should specify only this case.
 //
-// The code for this method is a stripped-down version from the KEPWARE´s
+// The code for this method is a stripped-down version from the KEPWAREï¿½s
 // original C++ sample client code.
 //
 void STDMETHODCALLTYPE SOCAdviseSink::OnDataChange(
@@ -73,20 +79,21 @@ void STDMETHODCALLTYPE SOCAdviseSink::OnDataChange(
 	LARGE_INTEGER dlibMove;
 	OPCGROUPHEADER groupheader;
 	OPCITEMHEADER1 itemheader;
+	
 	VARIANT vtVal;
 	FILETIME lft;
 	SYSTEMTIME st;
     char szLocalDate[255], szLocalTime[255];
 	bool status;
 	char buffer[100];
-	WORD quality;
+	//WORD quality;
 
 	// Check for valid pointers.  Return if invalid:
 	if ((pFormatEtc == NULL) || (pMedium == NULL)) {
 		printf ("IAdviseSink::OnDataChange: Invalid pointers.\n");
 		return;
 	}
-	
+
 	// The OPC DA spec dictates that the storage medium must be a handle to global
 	// memory. Check this up and return if not:
 	if ((pFormatEtc->tymed != TYMED_HGLOBAL) && (pMedium->tymed != TYMED_HGLOBAL)){
@@ -94,7 +101,7 @@ void STDMETHODCALLTYPE SOCAdviseSink::OnDataChange(
 		return;
 	}
 
-	// Although this is not strictly necessary, KEPWARE´s sample client
+	// Although this is not strictly necessary, KEPWAREï¿½s sample client
 	// treats the storage medium as a stream object. So, it first
 	// obtains an IStream instance from the global memory handle.
 	//
@@ -175,7 +182,7 @@ void STDMETHODCALLTYPE SOCAdviseSink::OnDataChange(
 		}
 
 		// Seek to beginning of the OPC utem value:
-		dlibMove.LowPart = itemheader.dwValueOffset;	
+		dlibMove.LowPart = itemheader.dwValueOffset;
 		hr = pStream->Seek (dlibMove, STREAM_SEEK_SET, NULL);
 		if (hr != S_OK){
 			printf("IAdviseSink::OnDataChange: Failed to seek data. Error = %x\n", hr);
@@ -191,7 +198,6 @@ void STDMETHODCALLTYPE SOCAdviseSink::OnDataChange(
 			return;
 		}
 
-		// A little more work for strings and arrays:
 		switch (vtVal.vt)
 		{
 			case VT_BSTR:
@@ -216,7 +222,7 @@ void STDMETHODCALLTYPE SOCAdviseSink::OnDataChange(
 				}
 				if (dwLength == 0)
 					vtVal.bstrVal = NULL;
-				else{ 
+				else{
 					// Allocate memory for string.  We will free this once we copy
 					// the contents of the string into the item object:
 					vtVal.bstrVal = SysAllocStringLen (NULL, dwLength);
@@ -225,7 +231,7 @@ void STDMETHODCALLTYPE SOCAdviseSink::OnDataChange(
 						hr = pStream->Read (vtVal.bstrVal, (dwLength + 1) * sizeof (OLECHAR), NULL);
 						if (hr != S_OK){
 							printf("IAdviseSink::OnDataChange: VT_BSTR: Failed to create stream object. Error = %x\n", hr);
-							SysFreeString (vtVal.bstrVal);						
+							SysFreeString (vtVal.bstrVal);
 							pStream->Release ();
 							return;
 						}
@@ -256,7 +262,7 @@ void STDMETHODCALLTYPE SOCAdviseSink::OnDataChange(
 				if (sa.cDims != 1){
 					// Read array parameters for second dimension:
 					// (Note that ASSERT is a MFC function that here is replaced
-					// by the standard CRT function ´assert'
+					// by the standard CRT function ï¿½assert'
 					//ASSERT (sa.cDims == 2);
 					assert (sa.cDims == 2);
 					SAFEARRAYBOUND sab [2];
@@ -288,14 +294,26 @@ void STDMETHODCALLTYPE SOCAdviseSink::OnDataChange(
 		// a few OPC data types are supported.
 		status = VarToStr(vtVal, buffer);
 		if (status){
-			printf("Data Advise: Value = %s", buffer);
+			//printf("\nData Advise [%d]: Value = %s", itemheader.hClient, buffer);
+
+			if (itemheader.hClient == PRODUCTION) {
+				SetProduction(buffer);
+			}
+			else if (itemheader.hClient == OEE) {
+				SetOEE(buffer);
+			}
+			else if (itemheader.hClient == TIME_FINISH) {
+				SetTimeToFinish(buffer);
+			}
+
+
 			if (vtVal.vt == VT_BSTR)
-				SysFreeString (vtVal.bstrVal);	
-			quality = itemheader.wQuality & OPC_QUALITY_MASK;
-			if (quality == OPC_QUALITY_GOOD)
+				SysFreeString (vtVal.bstrVal);
+			//quality = itemheader.wQuality & OPC_QUALITY_MASK;
+			/*if (quality == OPC_QUALITY_GOOD)
 				printf(" Quality: good");
 			else
-			    printf(" Quality: not good");
+			    printf(" Quality: not good");*/
 			// Code below extracted from the Microsoft KB:
 			//     http://support.microsoft.com/kb/188768
 			// Note that in order for it to work, the Visual Studio C++ must
@@ -308,13 +326,41 @@ void STDMETHODCALLTYPE SOCAdviseSink::OnDataChange(
 			FileTimeToSystemTime(&lft, &st);
 			GetDateFormat(LOCALE_SYSTEM_DEFAULT, DATE_SHORTDATE, &st, NULL, szLocalDate, 255);
 			GetTimeFormat(LOCALE_SYSTEM_DEFAULT, 0, &st, NULL, szLocalTime, 255);
-			printf(" Time: %s %s\n", szLocalDate, szLocalTime);
+			//printf(" Time: %s %s\n", szLocalDate, szLocalTime);
 		}
 		else printf ("Data Advise: Unsupported item type\n");
 		
+		//printf("\nData Advise [%d]: Value = %d\n", dwItem, vtVal.vt);
+		
+
 		// Clear variant for reuse:
 		VariantClear (&vtVal);
 	}
 	// Release our stream on exit:
 	pStream->Release();
+}
+
+
+void SOCAdviseSink::SetProduction(char production[100]) {
+	strcpy_s(mProduction, production);
+	//printf("\nData Advise [0]: Value = %s", mProduction);
+	
+}
+
+void SOCAdviseSink::SetOEE(char oee[100]) {
+	strcpy_s(mOee, oee);
+	//printf("\nData Advise [1]: Value = %s", mOee);
+}
+
+void SOCAdviseSink::SetTimeToFinish(char time[100]) {
+	strcpy_s(mTime, time);
+	//printf("\nData Advise [2]: Value = %s", mTime);
+}
+
+void SOCAdviseSink::RetrieveValues(char *production, char *oee, char *time) {	
+	
+	strcpy(production, mProduction);
+	strcpy(oee, mOee);
+	strcpy(time, mTime);
+
 }
